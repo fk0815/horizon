@@ -8,6 +8,8 @@
 #include "util/bbox_accumulator.hpp"
 #include "pool/part.hpp"
 
+#include <iostream>
+
 namespace horizon {
 
 static void cb_nop(std::string, double)
@@ -62,26 +64,28 @@ using Callback = std::function<void(std::string, double)>;
 class PDFExporter {
 public:
     PDFExporter(const class PDFExportSettings &settings, Callback callback)
-        : document(settings.output_filename.c_str()), font(document.CreateFont("Helvetica")),
-          canvas(painter, *font, settings), cb(callback)
+        : document(), font(*document.GetFonts().SearchFont("Helvetica")),
+        canvas(painter, font, settings),
+        cb(callback),
+        filename(settings.output_filename.c_str())
     {
         canvas.use_layer_colors = false;
     }
 
     void export_pdf(const class Schematic &sch)
     {
+        std::cout << "save AA" << std::endl;
         cb("Initializing", 0);
-        auto info = document.GetInfo();
-        info->SetCreator("Horizon EDA");
-        info->SetProducer("Horizon EDA");
+        document.GetMetadata().SetCreator(PoDoFo::PdfString("Horizon EDA"));
+        document.GetMetadata().SetProducer(PoDoFo::PdfString("Horizon EDA"));
         if (sch.block->project_meta.count("author")) {
-            info->SetAuthor(sch.block->project_meta.at("author"));
+            document.GetMetadata().SetAuthor(PoDoFo::PdfString(sch.block->project_meta.at("author")));
         }
         std::string title = "Schematic";
         if (sch.block->project_meta.count("project_title")) {
             title = sch.block->project_meta.at("project_title");
         }
-        info->SetTitle(title);
+        document.GetMetadata().SetTitle(PoDoFo::PdfString(title));
         MyInstanceMappingProvider prv(sch);
 
 #ifdef HAVE_OUTLINE
@@ -91,39 +95,44 @@ public:
         PoDoFo::PdfOutlineItem *proot = nullptr;
 #endif
 
+        std::cout << "save KK" << std::endl;
         export_schematic(sch, {}, prv, proot);
+        std::cout << "save LL" << std::endl;
         for (auto &[path, number, rect] : annotations) {
-            auto page = document.GetPage(number);
-            auto annot = page->CreateAnnotation(PoDoFo::ePdfAnnotation_Link, rect);
-            annot->SetBorderStyle(0, 0, 0);
-            annot->SetDestination(first_pages.at(path));
+            auto &page = document.GetPages().GetPageAt(number);
+            auto &annot = page.GetAnnotations().CreateAnnot<PoDoFo::PdfAnnotationLink>(rect);
+            annot.SetBorderStyle(0, 0, 0);
+            //annot.SetDestination(std::make_shared<PoDoFo::PdfDestination>(first_pages.at(path)));
         }
         for (auto &[url, number, rect] : datasheet_annotations) {
-            auto page = document.GetPage(number);
-            auto annot = page->CreateAnnotation(PoDoFo::ePdfAnnotation_Link, rect);
-            annot->SetBorderStyle(0, 0, 0);
+            auto &page = document.GetPages().GetPageAt(number);
+            auto &annot = page.GetAnnotations().CreateAnnot<PoDoFo::PdfAnnotationLink>(rect);
+            annot.SetBorderStyle(0, 0, 0);
 
-            PoDoFo::PdfAction action(PoDoFo::ePdfAction_URI, &document);
+            PoDoFo::PdfAction action(document, PoDoFo::PdfActionType::URI);
             action.SetURI(PoDoFo::PdfString(url));
-            annot->SetAction(action);
+            //TODO no idea: annot.SetAction(action);
         }
-        document.Close();
+        document.Save(filename);
+        std::cout << "save ZZ" << std::endl;
     }
 
 private:
-    PoDoFo::PdfStreamedDocument document;
+    PoDoFo::PdfMemDocument document;
     PoDoFo::PdfPainter painter;
-    PoDoFo::PdfFont *font = nullptr;
+    PoDoFo::PdfFont &font;
     std::map<UUIDVec, PoDoFo::PdfDestination> first_pages;
-    std::vector<std::tuple<UUIDVec, unsigned int, PoDoFo::PdfRect>> annotations;
-    std::vector<std::tuple<std::string, unsigned int, PoDoFo::PdfRect>> datasheet_annotations;
+    std::vector<std::tuple<UUIDVec, unsigned int, PoDoFo::Rect>> annotations;
+    std::vector<std::tuple<std::string, unsigned int, PoDoFo::Rect>> datasheet_annotations;
     PoDoFo::PdfOutlines *outlines = nullptr;
     CanvasPDF canvas;
     Callback cb;
+    std::basic_string_view<char> filename;
 
     void export_schematic(const Schematic &sch, const UUIDVec &path, MyInstanceMappingProvider &prv,
                           PoDoFo::PdfOutlineItem *parent)
     {
+        std::cout << "save AAA" << std::endl;
         if (Block::instance_path_too_long(path, __FUNCTION__))
             return;
         prv.set_instance_path(path);
@@ -132,16 +141,17 @@ private:
         bool first = true;
         auto sheets = my_sch.get_sheets_sorted();
         for (const auto sheet : sheets) {
+            std::cout << "save BBB" << std::endl;
             const auto idx = prv.get_sheet_index_for_path(sheet->uuid, path);
             const auto progress = (double)idx / prv.get_sheet_total();
             cb("Exporting sheet " + format_m_of_n(idx, prv.get_sheet_total()), progress);
-            auto page =
-                    document.CreatePage(PoDoFo::PdfRect(0, 0, to_pt(sheet->frame.width), to_pt(sheet->frame.height)));
-            painter.SetPage(page);
-            painter.SetLineCapStyle(PoDoFo::ePdfLineCapStyle_Round);
-            painter.SetFont(font);
-            painter.SetColor(0, 0, 0);
-            painter.SetTextRenderingMode(PoDoFo::ePdfTextRenderingMode_Invisible);
+            auto &page =
+                    document.GetPages().CreatePage(PoDoFo::Rect(0, 0, to_pt(sheet->frame.width), to_pt(sheet->frame.height)));
+            painter.SetCanvas(page);
+            painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
+            painter.TextState.SetFont(font, 10);
+            painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+            painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
 
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (!pic.on_top)
@@ -166,10 +176,10 @@ private:
                         render_picture(document, painter, pic, sym.placement);
                 }
             }
-
+std::cout << "save FFF" << std::endl;
             auto dest = PoDoFo::PdfDestination(page);
             if (first) {
-                first_pages.emplace(path, dest);
+                //first_pages.emplace(path, dest);
                 first = false;
             }
 
@@ -177,64 +187,70 @@ private:
                 const auto &items = canvas.get_selectables().get_items();
                 const auto &items_ref = canvas.get_selectables().get_items_ref();
                 const auto n = items.size();
+
+                std::cout << "save LLL" << std::endl;
                 for (size_t i = 0; i < n; i++) {
                     const auto &it = items.at(i);
                     const auto &ir = items_ref.at(i);
                     if (ir.type == ObjectType::SCHEMATIC_BLOCK_SYMBOL) {
                         if (it.is_box()) {
+                            std::cout << "save NNN" << std::endl;
                             BBoxAccumulator<float> acc;
                             for (const auto &c : it.get_corners()) {
                                 acc.accumulate(c);
                             }
                             const auto [a, b] = acc.get();
-                            PoDoFo::PdfRect rect(to_pt(a.x), to_pt(a.y), to_pt(b.x - a.x), to_pt(b.y - a.y));
+                            PoDoFo::Rect rect(to_pt(a.x), to_pt(a.y), to_pt(b.x - a.x), to_pt(b.y - a.y));
                             annotations.emplace_back(
                                     uuid_vec_append(path, sheet->block_symbols.at(ir.uuid).block_instance->uuid),
-                                    page->GetPageNumber() - 1, rect);
+                                    page.GetPageNumber() - 1, rect);
                         }
                     }
                     else if (ir.type == ObjectType::SCHEMATIC_SYMBOL) {
                         if (it.is_box()) {
                             const auto &sym = sheet->symbols.at(ir.uuid);
                             if (sym.component->part && sym.component->part->get_datasheet().size()) {
+                                std::cout << "save RRR" << std::endl;
                                 BBoxAccumulator<float> acc;
 
                                 for (const auto &c : it.get_corners()) {
                                     acc.accumulate(c);
                                 }
                                 const auto [a, b] = acc.get();
-                                PoDoFo::PdfRect rect(to_pt(a.x), to_pt(a.y), to_pt(b.x - a.x), to_pt(b.y - a.y));
+                                PoDoFo::Rect rect(to_pt(a.x), to_pt(a.y), to_pt(b.x - a.x), to_pt(b.y - a.y));
                                 datasheet_annotations.emplace_back(sym.component->part->get_datasheet(),
-                                                                   page->GetPageNumber() - 1, rect);
+                                                                   page.GetPageNumber() - 1, rect);
                             }
                         }
                     }
                 }
             }
-
-            painter.FinishPage();
+std::cout << "save UUU" << std::endl;
+            painter.FinishDrawing();
 
 #ifdef HAVE_OUTLINE
-            PoDoFo::PdfOutlineItem *sheet_node;
+            //PoDoFo::PdfOutlineItem *sheet_node;
             if (parent) {
-                sheet_node = parent->CreateChild(sheet->name, dest);
+                //sheet_node = parent->CreateChild(PoDoFo::PdfString(sheet->name), std::make_shared<PoDoFo::PdfDestination>(dest));
             }
             else {
-                sheet_node = outlines->CreateRoot(sheet->name);
-                sheet_node->SetDestination(dest);
+                //sheet_node = outlines->CreateRoot(PoDoFo::PdfString(sheet->name));
+                //sheet_node->SetDestination(std::make_shared<PoDoFo::PdfDestination>(dest));
             }
 #endif
-
+#if 0
             for (auto sym : sheet->get_block_symbols_sorted()) {
 #ifdef HAVE_OUTLINE
-                auto sym_node = sheet_node->CreateChild(sym->block_instance->refdes, dest);
-                sym_node->SetTextFormat(PoDoFo::ePdfOutlineFormat_Italic);
+                auto sym_node = sheet_node->CreateChild(PoDoFo::PdfString(sym->block_instance->refdes),  std::make_shared<PoDoFo::PdfDestination>(dest));
+                sym_node->SetTextFormat(PoDoFo::PdfOutlineFormat::Italic);
 #else
                 PoDoFo::PdfOutlineItem *sym_node = nullptr;
 #endif
                 export_schematic(*sym->schematic, uuid_vec_append(path, sym->block_instance->uuid), prv, sym_node);
             }
+#endif
         }
+        std::cout << "save ZZZ" << std::endl;
     }
 };
 
@@ -242,7 +258,10 @@ void export_pdf(const class Schematic &sch, const class PDFExportSettings &setti
 {
     if (!cb)
         cb = &cb_nop;
+    std::cout << "save A" << std::endl;
     PDFExporter ex(settings, cb);
+    std::cout << "save B" << std::endl;
     ex.export_pdf(sch);
+    std::cout << "save C" << std::endl;
 }
 } // namespace horizon
