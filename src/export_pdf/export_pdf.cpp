@@ -148,24 +148,26 @@ private:
             auto &page =
                     document.GetPages().CreatePage(PoDoFo::Rect(0, 0, to_pt(sheet->frame.width), to_pt(sheet->frame.height)));
             painter.SetCanvas(page);
-            painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
-            painter.TextState.SetFont(font, 10);
-            painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
-            painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
-
+            //painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
+            //painter.TextState.SetFont(font, 10);
+            //painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+            //painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
+#if 0
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (!pic.on_top)
                     render_picture(document, painter, pic);
             }
+#endif
+#if 0
             for (const auto &[uu_sym, sym] : sheet->block_symbols) {
                 for (const auto &[uu, pic] : sym.symbol.pictures) {
                     if (!pic.on_top)
                         render_picture(document, painter, pic, sym.placement);
                 }
             }
-
+#endif
             canvas.update(*sheet);
-
+#if 0
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (pic.on_top)
                     render_picture(document, painter, pic);
@@ -176,13 +178,14 @@ private:
                         render_picture(document, painter, pic, sym.placement);
                 }
             }
+#endif
 std::cout << "save FFF" << std::endl;
             auto dest = PoDoFo::PdfDestination(page);
             if (first) {
                 //first_pages.emplace(path, dest);
                 first = false;
             }
-
+if(0)
             {
                 const auto &items = canvas.get_selectables().get_items();
                 const auto &items_ref = canvas.get_selectables().get_items_ref();

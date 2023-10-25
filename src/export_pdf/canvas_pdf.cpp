@@ -8,6 +8,8 @@
 #include "board/plane.hpp"
 #include <sstream>
 
+#include <iostream>
+
 namespace horizon {
 
 double to_pt(double x_nm)
@@ -89,11 +91,17 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
     if (mirror) {
         lineskip *= -1;
     }
-    painter.TextState.SetFont(font, to_pt(size) * 1.6);
+    //painter.Save();
+    //painter.TextState.SetFont(font, to_pt(size) * 1.6);
     while (std::getline(ss, line, '\n')) {
+
+        painter.Save();
+        painter.TextState.SetFont(font, to_pt(size) * 1.6);
+
         line = TextData::trim(line);
         //int64_t line_width = metrics.StringWidth(line.c_str()) * 1000;
         int64_t line_width = font.GetStringLength(line.c_str(), painter.TextState);
+        std::cout << "wdt:" << line_width << std::endl;
 
         Placement tf;
         tf.shift.x = p.x;
@@ -127,19 +135,23 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
             }
         }
         double fangle = tf.get_angle_rad();
-        painter.Save();
+        //painter.Save();
         Coordi p0(xshift, yshift);
         Coordi pt = tf.transform(p0);
 
+        std::cout << "ang:" << fangle << " x:" << pt.x << " y:" << pt.y << std::endl;
+
         //painter.SetTransformationMatrix(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y));
-        painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y)));
+        //painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y)));
         //PoDoFo::PdfString pstr(reinterpret_cast<const PoDoFo::pdf_utf8 *>(line.c_str()));
         //painter.DrawText(0, to_pt(size) / -2, pstr);
+        std::cout << "str: " << line << std::endl;
         painter.DrawText(line.c_str(), 0, to_pt(size) / -2);
         painter.Restore();
 
         i_line++;
     }
+    //painter.Restore();
 }
 
 void CanvasPDF::img_polygon(const Polygon &ipoly, bool tr)

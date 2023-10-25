@@ -13,6 +13,7 @@ void render_picture(PoDoFo::PdfDocument &doc, PoDoFo::PdfPainter &painter, const
     Placement pl = tr;
     pl.accumulate(pic.placement);
 
+#if 0
     {
         std::vector<char> picdata;
         picdata.reserve(pic.data->width * pic.data->height * 3);
@@ -26,6 +27,21 @@ void render_picture(PoDoFo::PdfDocument &doc, PoDoFo::PdfPainter &painter, const
         img.SetImageColorSpace(PoDoFo::ePdfColorSpace_DeviceRGB);
         img.SetImageData(pic.data->width, pic.data->height, 8, &stream);
 */
+
+        //PoDoFo::InputStream ins;
+        //PoDoFo::InputStream::ReadBuffer(ins, picdata.data(), picdata.size(), false);
+
+        //PoDoFo::BufferStreamDevice outMemStream(picdata.data());
+
+        PoDoFo::PdfImageInfo info;
+        info.Width = pic.data->width;
+        info.Height = pic.data->height;
+        info.ColorSpace = PoDoFo::PdfColorSpace::DeviceRGB;
+        info.BitsPerComponent = 8;
+        //img->SetDataRaw(ins, info);
+
+        //img.SetData(picdata.data(), pic.data->width, pic.data->height, 8, &stream);
+
         auto metadata = doc.GetCatalog().GetMetadataObject();
         if (metadata != nullptr) {
             metadata->GetOrCreateStream().SetData({ picdata.data(), picdata.size() });
@@ -51,7 +67,7 @@ void render_picture(PoDoFo::PdfDocument &doc, PoDoFo::PdfPainter &painter, const
         }
 
     }
-
+#endif
     //TODO: no idea img.SetSoftMask(&img_mask);
 
     painter.Save();
