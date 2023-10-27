@@ -87,16 +87,19 @@ public:
         }
         document.GetMetadata().SetTitle(PoDoFo::PdfString(title));
         MyInstanceMappingProvider prv(sch);
-
+#if 0
 #ifdef HAVE_OUTLINE
         outlines = document.GetOutlines();
         PoDoFo::PdfOutlineItem *proot = nullptr;
 #else
         PoDoFo::PdfOutlineItem *proot = nullptr;
 #endif
-
+#endif
         std::cout << "save KK" << std::endl;
-        export_schematic(sch, {}, prv, proot);
+
+        //export_schematic(sch, {}, prv, proot);
+        export_schematic(sch, {}, prv);
+#if 0
         std::cout << "save LL" << std::endl;
         for (auto &[path, number, rect] : annotations) {
             auto &page = document.GetPages().GetPageAt(number);
@@ -113,6 +116,7 @@ public:
             action.SetURI(PoDoFo::PdfString(url));
             //TODO no idea: annot.SetAction(action);
         }
+#endif
         document.Save(filename);
         std::cout << "save ZZ" << std::endl;
     }
@@ -121,16 +125,15 @@ private:
     PoDoFo::PdfMemDocument document;
     PoDoFo::PdfPainter painter;
     PoDoFo::PdfFont &font;
-    std::map<UUIDVec, PoDoFo::PdfDestination> first_pages;
-    std::vector<std::tuple<UUIDVec, unsigned int, PoDoFo::Rect>> annotations;
-    std::vector<std::tuple<std::string, unsigned int, PoDoFo::Rect>> datasheet_annotations;
-    PoDoFo::PdfOutlines *outlines = nullptr;
+    //std::map<UUIDVec, PoDoFo::PdfDestination> first_pages;
+    //std::vector<std::tuple<UUIDVec, unsigned int, PoDoFo::Rect>> annotations;
+    //std::vector<std::tuple<std::string, unsigned int, PoDoFo::Rect>> datasheet_annotations;
+    //PoDoFo::PdfOutlines *outlines = nullptr;
     CanvasPDF canvas;
     Callback cb;
     std::basic_string_view<char> filename;
 
-    void export_schematic(const Schematic &sch, const UUIDVec &path, MyInstanceMappingProvider &prv,
-                          PoDoFo::PdfOutlineItem *parent)
+    void export_schematic(const Schematic &sch, const UUIDVec &path, MyInstanceMappingProvider &prv)
     {
         std::cout << "save AAA" << std::endl;
         if (Block::instance_path_too_long(path, __FUNCTION__))
@@ -138,7 +141,7 @@ private:
         prv.set_instance_path(path);
         Schematic my_sch = sch;
         my_sch.expand(false, &prv);
-        bool first = true;
+        //bool first = true;
         auto sheets = my_sch.get_sheets_sorted();
         for (const auto sheet : sheets) {
             std::cout << "save BBB" << std::endl;
@@ -148,26 +151,30 @@ private:
             auto &page =
                     document.GetPages().CreatePage(PoDoFo::Rect(0, 0, to_pt(sheet->frame.width), to_pt(sheet->frame.height)));
             painter.SetCanvas(page);
-            //painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
-            //painter.TextState.SetFont(font, 10);
-            //painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
-            //painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
-#if 0
+
+            painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
+            painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+            painter.TextState.SetFont(font, 10);
+            painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
+
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (!pic.on_top)
                     render_picture(document, painter, pic);
             }
-#endif
-#if 0
+
             for (const auto &[uu_sym, sym] : sheet->block_symbols) {
                 for (const auto &[uu, pic] : sym.symbol.pictures) {
                     if (!pic.on_top)
                         render_picture(document, painter, pic, sym.placement);
                 }
             }
-#endif
+
+            painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
+            painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+            painter.TextState.SetFont(font, 10);
+            painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
             canvas.update(*sheet);
-#if 0
+
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (pic.on_top)
                     render_picture(document, painter, pic);
@@ -178,14 +185,14 @@ private:
                         render_picture(document, painter, pic, sym.placement);
                 }
             }
-#endif
+#if 0
 std::cout << "save FFF" << std::endl;
             auto dest = PoDoFo::PdfDestination(page);
             if (first) {
                 //first_pages.emplace(path, dest);
                 first = false;
             }
-if(0)
+if(1)
             {
                 const auto &items = canvas.get_selectables().get_items();
                 const auto &items_ref = canvas.get_selectables().get_items_ref();
@@ -228,9 +235,11 @@ if(0)
                     }
                 }
             }
+#endif
 std::cout << "save UUU" << std::endl;
             painter.FinishDrawing();
 
+#if 0
 #ifdef HAVE_OUTLINE
             //PoDoFo::PdfOutlineItem *sheet_node;
             if (parent) {
@@ -241,7 +250,6 @@ std::cout << "save UUU" << std::endl;
                 //sheet_node->SetDestination(std::make_shared<PoDoFo::PdfDestination>(dest));
             }
 #endif
-#if 0
             for (auto sym : sheet->get_block_symbols_sorted()) {
 #ifdef HAVE_OUTLINE
                 auto sym_node = sheet_node->CreateChild(PoDoFo::PdfString(sym->block_instance->refdes),  std::make_shared<PoDoFo::PdfDestination>(dest));

@@ -46,8 +46,10 @@ void CanvasPDF::img_line(const Coordi &p0, const Coordi &p1, const uint64_t widt
 {
     if (!pdf_layer_visible(layer))
         return;
+
     painter.Save();
     auto w = std::max(width, settings.min_line_width);
+    std::cout << "w:" << w << std::endl;
     painter.GraphicsState.SetLineWidth(to_pt(w));
     Coordi rp0 = p0;
     Coordi rp1 = p1;
@@ -70,6 +72,7 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
     if (!pdf_layer_visible(layer))
         return;
 
+    //return;
     angle = wrap_angle(angle);
     bool backwards = (angle > 16384) && (angle <= 49152);
     float yshift = 0;
@@ -92,11 +95,13 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
         lineskip *= -1;
     }
     //painter.Save();
-    //painter.TextState.SetFont(font, to_pt(size) * 1.6);
+    painter.TextState.SetFont(font, to_pt(size) * 1.6);
+                painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
+
     while (std::getline(ss, line, '\n')) {
 
-        painter.Save();
-        painter.TextState.SetFont(font, to_pt(size) * 1.6);
+        //painter.Save();
+        //painter.TextState.SetFont(font, to_pt(size) * 1.6);
 
         line = TextData::trim(line);
         //int64_t line_width = metrics.StringWidth(line.c_str()) * 1000;
@@ -135,14 +140,14 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
             }
         }
         double fangle = tf.get_angle_rad();
-        //painter.Save();
+        painter.Save();
         Coordi p0(xshift, yshift);
         Coordi pt = tf.transform(p0);
 
         std::cout << "ang:" << fangle << " x:" << pt.x << " y:" << pt.y << std::endl;
 
         //painter.SetTransformationMatrix(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y));
-        //painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y)));
+        painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y)));
         //PoDoFo::PdfString pstr(reinterpret_cast<const PoDoFo::pdf_utf8 *>(line.c_str()));
         //painter.DrawText(0, to_pt(size) / -2, pstr);
         std::cout << "str: " << line << std::endl;
