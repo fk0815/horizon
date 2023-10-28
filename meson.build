@@ -68,11 +68,11 @@ endif
 # pkg-config is useless for podofo :(
 podofo_lib =cxx.find_library('podofo', dirs: '/usr/lib/podofo-0.9/', required: false, has_headers:['/usr/include/podofo-0.9/podofo/podofo.h'] )
 if podofo_lib.found()
-podofo = declare_dependency (
+  podofo = declare_dependency (
     dependencies: podofo_lib,
-include_directories: include_directories('/usr/include/podofo-0.9')
-podofo_legacy = true
-)
+    include_directories: include_directories('/usr/include/podofo-0.9')
+  )
+  podofo_legacy = true
 else
   podofo = dependency('libpodofo09', required:false)
   if podofo.found()
@@ -89,6 +89,7 @@ else
       else
         podofo_legacy = false
       endif
+    endif
   endif
 endif
 
