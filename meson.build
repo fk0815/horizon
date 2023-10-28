@@ -71,20 +71,24 @@ if podofo_lib.found()
 podofo = declare_dependency (
     dependencies: podofo_lib,
 include_directories: include_directories('/usr/include/podofo-0.9')
+podofo_legacy = true
 )
 else
   podofo = dependency('libpodofo09', required:false)
   if podofo.found()
+    podofo_legacy = true
     cpp_args += '-DINC_PODOFO_WITHOUT_DIRECTORY'
   else
-    podofo = dependency('libpodofo')
-    if podofo.version() < '0.10.0'
-      cpp_args += '-DLIBPODOFO_LEGACY'
+    podofo = dependency('libpodofo-0', required:false)
+    if podofo.found()
       podofo_legacy = true
     else
-      cpp_args += '-DLIBPODOFO_NEW'
-      podofo_legacy = false
-    endif
+      podofo = dependency('libpodofo')
+      if podofo.version() < '0.10.0'
+        podofo_legacy = true
+      else
+        podofo_legacy = false
+      endif
   endif
 endif
 
