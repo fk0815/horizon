@@ -8,8 +8,6 @@
 #include "board/plane.hpp"
 #include <sstream>
 
-#include <iostream>
-
 namespace horizon {
 
 double to_pt(double x_nm)
@@ -44,13 +42,10 @@ Color CanvasPDF::get_pdf_layer_color(int layer) const
 
 void CanvasPDF::img_line(const Coordi &p0, const Coordi &p1, const uint64_t width, int layer, bool tr)
 {
-    std::cout << "func: img_line" << std::endl;
     if (!pdf_layer_visible(layer))
         return;
 
-    //painter.Save();
     auto w = std::max(width, settings.min_line_width);
-    //std::cout << "w:" << w << std::endl;
     painter.GraphicsState.SetLineWidth(to_pt(w));
     Coordi rp0 = p0;
     Coordi rp1 = p1;
@@ -61,14 +56,12 @@ void CanvasPDF::img_line(const Coordi &p0, const Coordi &p1, const uint64_t widt
     auto color = get_pdf_layer_color(layer);
     painter.GraphicsState.SetStrokeColor(PoDoFo::PdfColor(color.r, color.g, color.b));
     painter.DrawLine(to_pt(rp0.x), to_pt(rp0.y), to_pt(rp1.x), to_pt(rp1.y));
-    //painter.Restore();
 }
 
 void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rtext, int angle, bool flip,
                               TextOrigin origin, int layer, uint64_t width, TextData::Font tfont, bool center,
                               bool mirror)
 {
-    std::cout << "func: img_draw_text" << std::endl;
     if (!settings.include_text)
         return;
     if (!pdf_layer_visible(layer))
@@ -96,13 +89,10 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
         lineskip *= -1;
     }
 
-    //auto rmode = painter.TextState.GetRenderingMode();
-    //std::cout << "rmode:" << (int)rmode << std::endl;
     painter.TextState.SetFont(font, to_pt(size) * 1.6);
     while (std::getline(ss, line, '\n')) {
         line = TextData::trim(line);
         int64_t line_width = font.GetStringLength(line.c_str(), painter.TextState);
-        //std::cout << "wdt:" << line_width << std::endl;
 
         Placement tf;
         tf.shift.x = p.x;
@@ -136,15 +126,11 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
             }
         }
         double fangle = tf.get_angle_rad();
-        //painter.TextState.SetRenderingMode(rmode);
         painter.Save();
         Coordi p0(xshift, yshift);
         Coordi pt = tf.transform(p0);
 
-        //std::cout << "ang:" << fangle << " x:" << pt.x << " y:" << pt.y << std::endl;
-
         painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(cos(fangle), sin(fangle), -sin(fangle), cos(fangle), to_pt(pt.x), to_pt(pt.y)));
-        std::cout << "str: " << line << std::endl;
         painter.DrawText(line.c_str(), 0, to_pt(size) / -2);
         painter.Restore();
 
@@ -154,10 +140,10 @@ void CanvasPDF::img_draw_text(const Coordf &p, float size, const std::string &rt
 
 void CanvasPDF::img_polygon(const Polygon &ipoly, bool tr)
 {
-    std::cout << "func: img_polygon" << std::endl;
+
     if (!pdf_layer_visible(ipoly.layer))
         return;
-    //painter.Save();
+
     auto color = get_pdf_layer_color(ipoly.layer);
     painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(color.r, color.g, color.b));
     painter.GraphicsState.SetStrokeColor(PoDoFo::PdfColor(color.r, color.g, color.b));
@@ -196,10 +182,8 @@ void CanvasPDF::img_polygon(const Polygon &ipoly, bool tr)
 
 void CanvasPDF::img_hole(const Hole &hole)
 {
-    std::cout << "func: ing_hole" << std::endl;
     if (!pdf_layer_visible(PDFExportSettings::HOLES_LAYER))
         return;
-    //painter.Save();
 
     auto color = get_pdf_layer_color(PDFExportSettings::HOLES_LAYER);
     painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(color.r, color.g, color.b));
@@ -225,7 +209,6 @@ void CanvasPDF::img_hole(const Hole &hole)
 // https://www.tinaja.com/glib/bezcirc2.pdf
 static Coordd pdf_arc_segment(PoDoFo::PdfPainterPath &path, const Coordd c, const double r, double a0, double a1)
 {
-    std::cout << "func: draw_arc_segment" << std::endl;
     const auto da = a0 - a1;
     assert(da != 0);
     assert(std::abs(da) <= M_PI / 2 + 1e-6);
@@ -251,7 +234,6 @@ static Coordd pdf_arc_segment(PoDoFo::PdfPainterPath &path, const Coordd c, cons
 
 static void pdf_arc(PoDoFo::PdfPainterPath &path, const Coordd start, const Coordd c, const Coordd end, bool cw)
 {
-    std::cout << "func: draw_arc" << std::endl;
     const auto r = (start - c).mag();
 
     // Get angles relative to the x axis
@@ -286,7 +268,6 @@ static void pdf_arc(PoDoFo::PdfPainterPath &path, const Coordd start, const Coor
 
 void CanvasPDF::draw_polygon(const Polygon &ipoly, bool tr)
 {
-    std::cout << "func: draw_polygon" << std::endl;
     assert(ipoly.usage == nullptr);
     bool first = true;
     for (auto it = ipoly.vertices.cbegin(); it < ipoly.vertices.cend(); it++) {
