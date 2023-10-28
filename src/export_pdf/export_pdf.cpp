@@ -144,7 +144,10 @@ private:
         //bool first = true;
         auto sheets = my_sch.get_sheets_sorted();
         for (const auto sheet : sheets) {
-            std::cout << "save BBB" << std::endl;
+
+            auto rmode = painter.TextState.GetRenderingMode();
+
+            std::cout << "save BBB rmode:" << (int)rmode << std::endl;
             const auto idx = prv.get_sheet_index_for_path(sheet->uuid, path);
             const auto progress = (double)idx / prv.get_sheet_total();
             cb("Exporting sheet " + format_m_of_n(idx, prv.get_sheet_total()), progress);
@@ -152,10 +155,12 @@ private:
                     document.GetPages().CreatePage(PoDoFo::Rect(0, 0, to_pt(sheet->frame.width), to_pt(sheet->frame.height)));
             painter.SetCanvas(page);
 
+#if 1
             painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
             painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
             painter.TextState.SetFont(font, 10);
             painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
+#endif
 
             for (const auto &[uu, pic] : sheet->pictures) {
                 if (!pic.on_top)
@@ -169,10 +174,13 @@ private:
                 }
             }
 
-            painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
-            painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
-            painter.TextState.SetFont(font, 10);
-            painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
+            auto rmode2 = painter.TextState.GetRenderingMode();
+            std::cout << "save CCC rmode:" << (int)rmode2 << std::endl;
+
+            //painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
+            //painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+            //painter.TextState.SetFont(font, 10);
+            //painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
             canvas.update(*sheet);
 
             for (const auto &[uu, pic] : sheet->pictures) {

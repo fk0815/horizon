@@ -39,8 +39,8 @@ void export_pdf(const class Board &brd, const class PDFExportSettings &settings,
     auto &page = document.GetPages().CreatePage(PoDoFo::Rect(0, 0, to_pt(width), to_pt(height)));
     painter.SetCanvas(page);
     painter.GraphicsState.SetLineCapStyle(PoDoFo::PdfLineCapStyle::Round);
-    painter.TextState.SetFont(*font, 10);
     painter.GraphicsState.SetFillColor(PoDoFo::PdfColor(0, 0, 0));
+    painter.TextState.SetFont(*font, 10);
     painter.TextState.SetRenderingMode(PoDoFo::PdfTextRenderingMode::Invisible);
     if (settings.mirror) {
         painter.GraphicsState.SetCurrentMatrix(PoDoFo::Matrix::FromCoefficients(-1, 0, 0, 1, to_pt(bbox.second.x + border_width), to_pt(-bbox.first.y + border_width)));
