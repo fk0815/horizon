@@ -65,32 +65,30 @@ if get_option('debug')
     cpp_args += '-DCONNECTION_CHECK'
 endif
 
-# pkg-config is useless for podofo :(
+# pkg-config is useless for old podofo :(
+podofo_legacy = true
 podofo_lib =cxx.find_library('podofo', dirs: '/usr/lib/podofo-0.9/', required: false, has_headers:['/usr/include/podofo-0.9/podofo/podofo.h'] )
 if podofo_lib.found()
   podofo = declare_dependency (
     dependencies: podofo_lib,
     include_directories: include_directories('/usr/include/podofo-0.9')
   )
-  podofo_legacy = true
 else
   podofo = dependency('libpodofo09', required:false)
   if podofo.found()
-    podofo_legacy = true
     cpp_args += '-DINC_PODOFO_WITHOUT_DIRECTORY'
   else
-    podofo = dependency('libpodofo-0', required:false)
-    if podofo.found()
+    podofo = dependency('libpodofo')
+    if podofo.version() == 'unknown' or podofo.version() < '0.10.0'
       podofo_legacy = true
     else
-      podofo = dependency('libpodofo')
-      if podofo.version() < '0.10.0'
-        podofo_legacy = true
-      else
-        podofo_legacy = false
-      endif
+      podofo_legacy = false
     endif
   endif
+endif
+
+if podofo_legacy
+  message('using legacy podofo')
 endif
 
 stdlibs = []
