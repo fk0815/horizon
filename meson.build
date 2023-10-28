@@ -78,6 +78,13 @@ else
     cpp_args += '-DINC_PODOFO_WITHOUT_DIRECTORY'
   else
     podofo = dependency('libpodofo')
+    if podofo.version() < '0.10.0'
+      cpp_args += '-DLIBPODOFO_LEGACY'
+      podofo_legacy = true
+    else
+      cpp_args += '-DLIBPODOFO_NEW'
+      podofo_legacy = false
+    endif
   endif
 endif
 
@@ -666,10 +673,6 @@ src_export = files(
     'src/export_util/tree_writer.cpp',
     'src/export_util/tree_writer_fs.cpp',
     'src/export_util/tree_writer_archive.cpp',
-    'src/export_pdf/canvas_pdf.cpp',
-    'src/export_pdf/export_pdf.cpp',
-    'src/export_pdf/export_pdf_board.cpp',
-    'src/export_pdf/export_pdf_util.cpp',
     'src/export_pnp/export_pnp.cpp',
     'src/export_bom/export_bom.cpp',
     'src/export_odb/odb_export.cpp',
@@ -685,6 +688,18 @@ src_export = files(
     'src/export_odb/track_graph.cpp',
     'src/export_odb/structured_text_writer.cpp'
 )
+
+if podofo_legacy
+  src_export += 'src/export_pdf/legacy/canvas_pdf.cpp'
+  src_export += 'src/export_pdf/legacy/export_pdf.cpp'
+  src_export += 'src/export_pdf/legacy/export_pdf_board.cpp'
+  src_export += 'src/export_pdf/legacy/export_pdf_util.cpp'
+else
+  src_export += 'src/export_pdf/canvas_pdf.cpp'
+  src_export += 'src/export_pdf/export_pdf.cpp'
+  src_export += 'src/export_pdf/export_pdf_board.cpp'
+  src_export += 'src/export_pdf/export_pdf_util.cpp'
+endif
 
 src_board_rules_check = files(
     'src/rules/cache.cpp',
