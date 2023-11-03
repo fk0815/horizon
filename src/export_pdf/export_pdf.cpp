@@ -62,7 +62,7 @@ using Callback = std::function<void(std::string, double)>;
 class PDFExporter {
 public:
     PDFExporter(const class PDFExportSettings &settings, Callback callback)
-        : document(), font(*document.GetFonts().SearchFont("Helvetica")), canvas(painter, font, settings), cb(callback),
+        : document(), font(document.GetFonts().GetStandard14Font(PoDoFo::PdfStandard14FontType::Helvetica)), canvas(painter, font, settings), cb(callback),
           filename(settings.output_filename.c_str())
     {
         canvas.use_layer_colors = false;
